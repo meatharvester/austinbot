@@ -65,7 +65,7 @@ class Constants:
     SNIPPET_PAGINATION_LIMIT = 10
 
     # Message timings
-    DEFAULT_DELETE_AFTER = 30
+    DEFAULT_DELETE_AFTER = 15
 
     # AFK constants
     AFK_PREFIX = "[AFK] "
