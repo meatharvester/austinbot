@@ -37,22 +37,15 @@ class Starboard(commands.Cog):
     async def starboard_on_reaction_clear_emoji(self, payload: discord.RawReactionClearEmojiEvent) -> None:
         await self.handle_reaction_clear(payload, payload.emoji)
 
-    @commands.hybrid_group(
-        name="starboard",
-    )
+    @commands.hybrid_group(name="starboard")
     @commands.guild_only()
     @checks.has_pl(5)
     async def starboard(self, ctx: commands.Context[Tux]) -> None:
-        """
-        Configure the starboard for this server.
-        """
+        """Configure the starboard for this server."""
         if ctx.invoked_subcommand is None:
             await ctx.send_help("starboard")
 
-    @starboard.command(
-        name="setup",
-        aliases=["s"],
-    )
+    @starboard.command(name="setup", aliases=["s"])
     @checks.has_pl(5)
     async def setup_starboard(
         self,
@@ -61,22 +54,12 @@ class Starboard(commands.Cog):
         emoji: str,
         threshold: int,
     ) -> None:
-        """
-        Configure the starboard for this server.
-
-        Parameters
-        ----------
-        channel : discord.TextChannel
-            The channel to use for the starboard.
-        emoji : str
-            The emoji to use for the starboard.
-        threshold : int
-            The number of reactions required to trigger the starboard.
-        """
-
+        """Set up the starboard."""
         assert ctx.guild
 
-        if len(emoji) != 1 or not emoji.isprintable():
+        try:
+            parsed_emoji = await commands.PartialEmojiConverter().convert(ctx, emoji)
+        except commands.BadArgument:
             await ctx.send(
                 embed=EmbedCreator.create_embed(
                     bot=self.bot,
@@ -84,8 +67,8 @@ class Starboard(commands.Cog):
                     user_name=ctx.author.name,
                     user_display_avatar=ctx.author.display_avatar.url,
                     title="Invalid Emoji",
-                    description="Please use a single default Discord emoji.",
-                ),
+                    description="Please provide a valid Unicode or custom emoji.",
+                )
             )
             return
 
@@ -98,7 +81,7 @@ class Starboard(commands.Cog):
                     user_display_avatar=ctx.author.display_avatar.url,
                     title="Invalid Threshold",
                     description="Threshold must be at least 1.",
-                ),
+                )
             )
             return
 
@@ -111,12 +94,12 @@ class Starboard(commands.Cog):
                     user_display_avatar=ctx.author.display_avatar.url,
                     title="Permission Denied",
                     description=f"I don't have permission to send messages in {channel.mention}.",
-                ),
+                )
             )
             return
 
         try:
-            await self.db.starboard.create_or_update_starboard(ctx.guild.id, channel.id, emoji, threshold)
+            await self.db.starboard.create_or_update_starboard(ctx.guild.id, channel.id, str(parsed_emoji), threshold)
 
             embed = EmbedCreator.create_embed(
                 bot=self.bot,
@@ -127,7 +110,7 @@ class Starboard(commands.Cog):
                 description="Starboard configured successfully.",
             )
             embed.add_field(name="Channel", value=channel.mention)
-            embed.add_field(name="Emoji", value=emoji)
+            embed.add_field(name="Emoji", value=str(parsed_emoji))
             embed.add_field(name="Threshold", value=threshold)
 
             await ctx.send(embed=embed)
@@ -136,21 +119,10 @@ class Starboard(commands.Cog):
             logger.error(f"Error configuring starboard: {e}")
             await ctx.send(f"An error occurred while configuring the starboard: {e}")
 
-    @starboard.command(
-        name="remove",
-        aliases=["r"],
-    )
+    @starboard.command(name="remove", aliases=["r"])
     @checks.has_pl(5)
     async def remove_starboard(self, ctx: commands.Context[Tux]) -> None:
-        """
-        Remove the starboard configuration for this server.
-
-        Parameters
-        ----------
-        ctx : commands.Context[Tux]
-            The context of the command.
-        """
-
+        """Remove the starboard configuration for this server."""
         assert ctx.guild
 
         try:
@@ -187,22 +159,7 @@ class Starboard(commands.Cog):
         starboard_channel: discord.TextChannel,
         original_message: discord.Message,
     ) -> discord.Message | None:
-        """
-        Get the existing starboard message for a given original message.
-
-        Parameters
-        ----------
-        starboard_channel : discord.TextChannel
-            The starboard channel.
-        original_message : discord.Message`
-            The original message.
-
-        Returns
-        -------
-        discord.Message | None
-            The existing starboard message or None if it does not exist.
-        """
-
+        """Get the existing starboard message for a given original message."""
         assert original_message.guild
 
         try:
@@ -228,19 +185,7 @@ class Starboard(commands.Cog):
         original_message: discord.Message,
         reaction_count: int,
     ) -> None:
-        """
-        Create or update a starboard message.
-
-        Parameters
-        ----------
-        starboard_channel : discord.TextChannel
-            The starboard channel.
-        original_message : discord.Message
-            The original message.
-        reaction_count : int
-            The number of reactions on the original message.
-        """
-
+        """Create or update a starboard message."""
         if not original_message.guild:
             logger.error("Original message has no guild")
             return
@@ -250,6 +195,8 @@ class Starboard(commands.Cog):
             if not starboard:
                 return
 
+            stored_emoji = discord.PartialEmoji.from_str(starboard.starboard_emoji)
+
             embed = EmbedCreator.create_embed(
                 embed_type=EmbedType.INFO,
                 description=original_message.content,
@@ -257,7 +204,7 @@ class Starboard(commands.Cog):
                 message_timestamp=original_message.created_at,
                 custom_author_text=original_message.author.display_name,
                 custom_author_icon_url=original_message.author.avatar.url if original_message.author.avatar else None,
-                custom_footer_text=f"{reaction_count} {starboard.starboard_emoji}",
+                custom_footer_text=f"{reaction_count} {stored_emoji!s}",
                 image_url=original_message.attachments[0].url if original_message.attachments else None,
             )
             embed.add_field(name="Source", value=f"[Jump to message]({original_message.jump_url})")
@@ -294,7 +241,11 @@ class Starboard(commands.Cog):
             return
 
         starboard = await self.db.starboard.get_starboard_by_guild_id(payload.guild_id)
-        if not starboard or str(payload.emoji) != starboard.starboard_emoji:
+        if not starboard:
+            return
+
+        stored_emoji = discord.PartialEmoji.from_str(starboard.starboard_emoji)
+        if payload.emoji.id != stored_emoji.id or payload.emoji.name != stored_emoji.name:
             return
 
         channel = await get_channel_safe(self.bot, payload.channel_id)
@@ -303,7 +254,7 @@ class Starboard(commands.Cog):
 
         try:
             message = await channel.fetch_message(payload.message_id)
-            reaction = discord.utils.get(message.reactions, emoji=starboard.starboard_emoji)
+            reaction = discord.utils.get(message.reactions, emoji=stored_emoji)
             reaction_count = reaction.count if reaction else 0
 
             if reaction:
@@ -311,7 +262,7 @@ class Starboard(commands.Cog):
                     if user.id == message.author.id:
                         reaction_count -= 1
                         with contextlib.suppress(Exception):
-                            await message.remove_reaction(starboard.starboard_emoji, message.author)
+                            await message.remove_reaction(stored_emoji, message.author)
 
             starboard_channel = channel.guild.get_channel(starboard.starboard_channel_id)
             if not isinstance(starboard_channel, discord.TextChannel):
@@ -319,7 +270,6 @@ class Starboard(commands.Cog):
 
             if reaction_count >= starboard.starboard_threshold:
                 await self.create_or_update_starboard_message(starboard_channel, message, reaction_count)
-
             else:
                 existing_starboard_message = await self.get_existing_starboard_message(starboard_channel, message)
                 if existing_starboard_message:
@@ -333,16 +283,7 @@ class Starboard(commands.Cog):
         payload: discord.RawReactionClearEvent | discord.RawReactionClearEmojiEvent,
         emoji: discord.PartialEmoji | None = None,
     ) -> None:
-        """
-        Handle reaction clear for all emojis or a specific emoji
-
-        Parameters
-        ----------
-        payload : discord.RawReactionClearEvent | discord.RawReactionClearEmojiEvent
-            The payload of the reaction clear event.
-        emoji : discord.PartialEmoji | None
-            The emoji to handle the reaction clear for.
-        """
+        """Handle reaction clear for all emojis or a specific emoji"""
         if not payload.guild_id:
             return
 
@@ -354,7 +295,11 @@ class Starboard(commands.Cog):
             message = await channel.fetch_message(payload.message_id)
             starboard = await self.db.starboard.get_starboard_by_guild_id(payload.guild_id)
 
-            if not starboard or (emoji and str(emoji) != starboard.starboard_emoji):
+            if not starboard:
+                return
+
+            stored_emoji = discord.PartialEmoji.from_str(starboard.starboard_emoji)
+            if emoji and (emoji.id != stored_emoji.id or emoji.name != stored_emoji.name):
                 return
 
             starboard_channel = channel.guild.get_channel(starboard.starboard_channel_id)
