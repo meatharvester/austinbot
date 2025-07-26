@@ -11,7 +11,7 @@ from tux.bot import Tux
 class TtyRoles(commands.Cog):
     def __init__(self, bot: Tux):
         self.bot = bot
-        self.base_role_name = "/dev/tty"
+        self.base_role_name = "group"
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
