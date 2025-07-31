@@ -5,6 +5,7 @@ from discord.ext import commands
 
 from tux.bot import Tux
 from tux.ui.embeds import EmbedCreator
+from tux.utils.env import get_current_env
 from tux.utils.functions import generate_usage
 
 
@@ -29,6 +30,8 @@ class Ping(commands.Cog):
 
         # Get the latency of the bot in milliseconds
         discord_ping = round(self.bot.latency * 1000)
+
+        environment = get_current_env()
 
         # Handles Time (turning POSIX time datetime)
         bot_start_time = datetime.fromtimestamp(self.bot.uptime, UTC)
@@ -70,6 +73,7 @@ class Ping(commands.Cog):
         embed.add_field(name="Uptime", value=f"{bot_uptime_readable}", inline=True)
         embed.add_field(name="CPU Usage", value=f"{cpu_usage}%", inline=True)
         embed.add_field(name="RAM Usage", value=f"{ram_amount_formatted}", inline=True)
+        embed.add_field(name="Prod/Dev", value=f"`{environment}`", inline=True)
 
         await ctx.send(embed=embed)
 
