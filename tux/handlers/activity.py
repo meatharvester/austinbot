@@ -1,5 +1,6 @@
 import asyncio
 import json
+import random
 from typing import NoReturn
 
 import discord
@@ -75,18 +76,21 @@ class ActivityHandler(commands.Cog):
         """
 
         while True:
-            for activity in self.activities:
-                try:
-                    if activity.name is None:
-                        logger.warning("Activity name is None, skipping this activity.")
-                        continue
-                    activity.name = await handle_substitution(self.bot, activity.name)
-                    await self.bot.change_presence(activity=activity)
-                except Exception as e:
-                    logger.error(f"Error updating activity: {e}")
-                    # Continue the loop even if an error occurs
+            try:
+                selected_activity = random.choice(self.activities)
 
-                await asyncio.sleep(self.delay)
+                if selected_activity.name is None:
+                    logger.warning("Activity name is None, skipping this activity.")
+                    await asyncio.sleep(self.delay)
+                    continue
+
+                selected_activity.name = await handle_substitution(self.bot, selected_activity.name)
+                await self.bot.change_presence(activity=selected_activity)
+
+            except Exception as e:
+                logger.error(f"Error updating activity: {e}")
+
+            await asyncio.sleep(self.delay)
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
