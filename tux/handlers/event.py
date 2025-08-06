@@ -36,7 +36,7 @@ class EventHandler(commands.Cog):
         None
         """
 
-        if message.author.bot:
+        if message.author.bot and message.webhook_id not in CONFIG.BRIDGE_WEBHOOK_IDS:
             return
 
         stripped_content = strip_formatting(message.content)
@@ -76,6 +76,7 @@ class EventHandler(commands.Cog):
         ):
             ctx = await self.bot.get_context(message)
             await self.bot.invoke(ctx)
+
         await self.handle_harmful_message(message)
 
     @commands.Cog.listener()
