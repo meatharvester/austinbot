@@ -63,6 +63,9 @@ distro_ids = [
     [1212028841103597679, "_plan9"],
     [1237704018629885983, "_cachyos"],
     [1237701203404783698, "_fedora"],  # Fedora-based role
+    [1386793599483646044, "_endeavouros"],
+    [1367198731115434035, "_solus"],
+    [1297922102917206109, "grey_question"],  # Other OS role
 ]
 
 lang_ids = [
