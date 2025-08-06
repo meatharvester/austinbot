@@ -143,10 +143,10 @@ vanity_ids = [
     [1217601089721995264, "old_man"],  # Boomer
     [1346489154766372874, "headphones"],  # ON AIR
     [1184245004198228050, "tux"],  # Tux Contributor
-    [1252848417026080809, "crown"],  # Doner Legend
-    [1249858729311211611, "first_place"],  # Super Doner
-    [1253392359765311518, "second_place"],  # Doner +
-    [1249802272007917678, "third_place"],  # Doner
+    [1252848417026080809, "crown"],  # Donor Legend
+    [1249858729311211611, "first_place"],  # Super Donor
+    [1253392359765311518, "second_place"],  # Donor +
+    [1249802272007917678, "third_place"],  # Donor
     [1172264612578742334, "rocket"],  # Booster
     [1247532827902480475, "books"],  # Wiki Author
 ]
