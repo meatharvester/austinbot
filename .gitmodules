@@ -1,3 +1,6 @@
 [submodule "tux/extensions/TuxSpeak"]
 	path = tux/extensions/TuxSpeak
 	url = https://github.com/cherryl1k/TuxSpeak
+[submodule "tux/extensions/TuxAccruacy"]
+	path = tux/extensions/TuxAccruacy
+	url = https://github.com/GrainWare/TuxAccuracy
