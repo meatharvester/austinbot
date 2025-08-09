@@ -1,0 +1,3 @@
+[submodule "tux/extensions/TuxSpeak"]
+	path = tux/extensions/TuxSpeak
+	url = https://github.com/cherryl1k/TuxSpeak
